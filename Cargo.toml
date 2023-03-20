@@ -1,0 +1,10 @@
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = [
+    "client",
+    "server",
+    "shared"
+]
+
+[profile.dev.package.num-bigint-dig]
+opt-level = 3
