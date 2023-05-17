@@ -3,7 +3,8 @@ I don't understand a lot about how rustls is working.
 so i think i'll make my own
 
 to have a secure connection we need:
-A pub/priv key system where the messages are encrypted using the public and decrypted using the private ones
+A pub/priv key system where the messages are encrypted using the public and 
+    decrypted using the private ones
 The current way is going as follows (iirc):
     The Client connects,
     The Server sends it's public key without any encryption,
