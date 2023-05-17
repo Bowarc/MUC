@@ -3,7 +3,7 @@ I don't understand a lot about how rustls is working.
 so i think i'll make my own
 
 to have a secure connection we need:
-A pub/priv key system where the messages are encrypted using the public and de-crypted using the private ones
+A pub/priv key system where the messages are encrypted using the public and decrypted using the private ones
 The current way is going as follows (iirc):
     The Client connects,
     The Server sends it's public key without any encryption,
@@ -44,5 +44,19 @@ As the client cannot read any packet from the server unless it's encrypted using
 And that key is nerver sent without the server's public key's encryption
 Only the server can read that key,
 **So we just need the client to receive and understand one packet sent by the server**
+The attacker cannot send a packet (that will be understood) to the client because it would need to understand decrypt the
+client's public key with the server's private key
+So as long as the server's private key is private and we make sure that the client requests a handshake, the connection is secure
+
+ONE LOOPHOLE COULD BE IF THE SERVER RECEIVES MULTIPLE KEYS FROM THE SAME CONNECTION
+WE HAVE TO LOCK THE CLIENT KEY IN THE SERVER'S BRAIN AFTER THE INITIALISATION*
+example:
+    the client sends it's public key encrypted with server's public
+    The client and server make the handshake, the client understood the sever and now trusts it
+    The attacker sends it's own public key encrypted using the server's public key
+    The server overwirte it's saved client key with the attacker's one
+    From now on the server responds using the attacker's public key // The client can't get any reponse (MITM2 l29)
+                                                                    // But the attacker can read what the server says
+                                                                    // and that is bad (obviously))
 
 
