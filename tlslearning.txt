@@ -1,0 +1,48 @@
+I don't understand a lot about how rustls is working. 
+
+so i think i'll make my own
+
+to have a secure connection we need:
+A pub/priv key system where the messages are encrypted using the public and de-crypted using the private ones
+The current way is going as follows (iirc):
+    The Client connects,
+    The Server sends it's public key without any encryption,
+    The Client sends it's public key without any encryption,
+    The rest of the conversation is encrypted using the target key
+
+The problem with this, is MITM:
+    There is nothing preventing the attacker to:
+        The Client connects,
+        The Server sends it's public key without any encryption, // The attacker send it's own public key
+        The Client sends it's public key without any encryption, // The attacker send it's own public key
+        The rest of the conversation is encrypted using the target key // Server <-> Attacker <-> Client
+                                                                       // The Client never talks to the Server,
+                                                                       // The Server never talks to the Client
+
+This can be solved if the client knows the server's public key and uses it to encrypt his own public key before
+sending it the server.
+In this case, the attacker cannot read the client's public key, therefore the attacker cannot send messages to the client 
+(well the client wouldn't be able to understand)
+
+BUT THERE IS A CASE where if the attacker sticks its own public key in the first message (encrypted with the server public key)
+and then forward every client's message to the server, the attacker can read the server's messages but can't send them to the client,
+Demo:
+    Client connects,
+    Client sends his public key to the server encrypted with the server's public key, // the attacker cannot read the client's
+                                                                                      // public key but cuts the message and do
+                                                                                      // the exact same thing
+    Attacker sends it's public key to the server encrypted with the server's public key // from now on, the server thinks the
+                                                                                        // client is the attacker
+    The attacker send every packet he receives from the client to the server // attacker can't read but it's encrypted with
+                                                                             // server public so the server can
+    The attacker can read every packet sent by the server as they are encrypted with the attacker's public key
+    But the attacker cannot forward any packet to the client as it's encrypted with the attacker's public key and 
+        the attacker doesn't have the client's public key
+
+To fix that, we have to make sure that the server has the client's public key, and for that, i might have an idea
+As the client cannot read any packet from the server unless it's encrypted using the client's public key
+And that key is nerver sent without the server's public key's encryption
+Only the server can read that key,
+**So we just need the client to receive and understand one packet sent by the server**
+
+
