@@ -13,50 +13,70 @@ The current way is going as follows (iirc):
 The problem with this, is MITM:
     There is nothing preventing the attacker to:
         The Client connects,
-        The Server sends it's public key without any encryption, // The attacker send it's own public key
-        The Client sends it's public key without any encryption, // The attacker send it's own public key
-        The rest of the conversation is encrypted using the target key // Server <-> Attacker <-> Client
-                                                                       // The Client never talks to the Server,
-                                                                       // The Server never talks to the Client
+        The Server sends it's public key without any encryption, 
+            // The attacker send it's own public key
+        The Client sends it's public key without any encryption, 
+            // The attacker send it's own public key
+        The rest of the conversation is encrypted using the target key 
+            // Server <-> Attacker <-> Client
+            // The Client never talks to the Server,
+            // The Server never talks to the Client
 
-This can be solved if the client knows the server's public key and uses it to encrypt his own public key before
-sending it the server.
-In this case, the attacker cannot read the client's public key, therefore the attacker cannot send messages to the client 
+This can be solved if the client knows the server's public key and uses it to 
+    encrypt his own public key before sending it the server.
+In this case, the attacker cannot read the client's public key,
+    therefore the attacker cannot send messages to the client 
 (well the client wouldn't be able to understand)
 
-BUT THERE IS A CASE where if the attacker sticks its own public key in the first message (encrypted with the server public key)
-and then forward every client's message to the server, the attacker can read the server's messages but can't send them to the client,
+BUT THERE IS A CASE where if the attacker sticks its own public key in 
+    the first message (encrypted with the server public key)
+and then forward every client's message to the server, the attacker can read 
+    the server's messages but can't send them to the client,
 Demo:
     Client connects,
-    Client sends his public key to the server encrypted with the server's public key, // the attacker cannot read the client's
-                                                                                      // public key but cuts the message and do
-                                                                                      // the exact same thing
-    Attacker sends it's public key to the server encrypted with the server's public key // from now on, the server thinks the
-                                                                                        // client is the attacker
-    The attacker send every packet he receives from the client to the server // attacker can't read but it's encrypted with
-                                                                             // server public so the server can
-    The attacker can read every packet sent by the server as they are encrypted with the attacker's public key
-    But the attacker cannot forward any packet to the client as it's encrypted with the attacker's public key and 
-        the attacker doesn't have the client's public key
+    Client sends his public key to the server encrypted with the server's
+        public key, // the attacker cannot read the client's
+                    // public key but cuts the message and do
+                    // the exact same thing
+    Attacker sends it's public key to the server encrypted with the server's
+        public key  // from now on, the server thinks the
+                    // client is the attacker
+    The attacker send every packet he receives from the client to the server 
+                    // attacker can't read but it's encrypted with
+                    // server public so the server can
+    The attacker can read every packet sent by the server as they are encrypted 
+        with the attacker's public key
+    But the attacker cannot forward any packet to the client as it's encrypted 
+        with the attacker's public key and the attacker doesn't have the 
+        client's public key
 
-To fix that, we have to make sure that the server has the client's public key, and for that, i might have an idea
-As the client cannot read any packet from the server unless it's encrypted using the client's public key
+To fix that, we have to make sure that the server has the client's public key, 
+    and for that, i might have an idea
+As the client cannot read any packet from the server unless it's encrypted using
+    the client's public key
 And that key is nerver sent without the server's public key's encryption
 Only the server can read that key,
+
 **So we just need the client to receive and understand one packet sent by the server**
-The attacker cannot send a packet (that will be understood) to the client because it would need to understand decrypt the
+
+The attacker cannot send a packet (that will be understood) to the client 
+    because it would need to understand decrypt the
 client's public key with the server's private key
-So as long as the server's private key is private and we make sure that the client requests a handshake, the connection is secure
+So as long as the server's private key is private and we make sure that the 
+    client requests a handshake, the connection is secure
 
 ONE LOOPHOLE COULD BE IF THE SERVER RECEIVES MULTIPLE KEYS FROM THE SAME CONNECTION
 WE HAVE TO LOCK THE CLIENT KEY IN THE SERVER'S BRAIN AFTER THE INITIALISATION*
 example:
     the client sends it's public key encrypted with server's public
-    The client and server make the handshake, the client understood the sever and now trusts it
-    The attacker sends it's own public key encrypted using the server's public key
+    The client and server make the handshake, the client understood the sever
+        and now trusts it
+    The attacker sends it's own public key encrypted using the server's public
+        key
     The server overwirte it's saved client key with the attacker's one
-    From now on the server responds using the attacker's public key // The client can't get any reponse (MITM2 l29)
-                                                                    // But the attacker can read what the server says
-                                                                    // and that is bad (obviously))
+    From now on the server responds using the attacker's public key 
+                    // The client can't get any reponse (MITM2 l29)
+                    // But the attacker can read what the server says
+                    // and that is bad (obviously))
 
 
