@@ -82,4 +82,3 @@ example:
 
 
 But this would mean that the client would need the server's public key before the first connection
-But if you set up multiple servers, how do you do that
