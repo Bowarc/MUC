@@ -2,15 +2,15 @@ pub fn init(log_file_opt: Option<&str>) {
     let mut builder = fern::Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!(
-                "╭[{} {} {}:{}]\n╰❯{}",
-                chrono::Local::now().format("%H:%M:%S"),
-                record.level(),
-                record.file().unwrap_or("Unknown file"),
-                record
+                "╭[{time} {level} {file_path}:{line_nbr}]\n╰❯{message}",
+                time = chrono::Local::now().format("%H:%M:%S%.3f"),
+                level = record.level(),
+                file_path = record.file().unwrap_or("Unknown file"),
+                line_nbr = record
                     .line()
                     .map(|l| l.to_string())
                     .unwrap_or("?".to_string()),
-                message
+                message = message
             ))
         })
         .level(log::LevelFilter::Debug)
