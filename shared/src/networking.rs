@@ -32,10 +32,14 @@ pub enum SocketError {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ClientMessage {
     Text(String),
+    LoginRequest { username: String, password: String },
+    LogoutRequest { id: uuid::Uuid },
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ServerMessage {
     Text(String),
+    LoginResponse(Result<uuid::Uuid, String>),
+    LogoutResponse(Result<(), String>),
 }
 
 impl<R: DeserializeOwned + std::fmt::Debug, W: Serialize + std::fmt::Debug> Socket<R, W> {
@@ -49,15 +53,12 @@ impl<R: DeserializeOwned + std::fmt::Debug, W: Serialize + std::fmt::Debug> Sock
     pub fn send(&mut self, message: W) -> Result<(), SocketError> {
         use std::io::Write as _;
 
-        trace!("Serializing message..");
         let message_bytes = bincode::serialize(&message)?;
         trace!("Serializing message.. Done, {} bytes", message_bytes.len());
 
-        trace!("Creating header..");
         let header = PacketHeader::new(message_bytes.len());
         trace!("Creating header.. Done, {header:?}");
 
-        trace!("Serializing header..");
         let header_bytes = bincode::serialize(&header)?;
         trace!("Serializing header.. Done, {} bytes", header_bytes.len());
 
@@ -67,14 +68,12 @@ impl<R: DeserializeOwned + std::fmt::Debug, W: Serialize + std::fmt::Debug> Sock
             return Err(SocketError::DeSerialization(Box::new(bincode::ErrorKind::Custom(format!("The length of the serialized header is not equal to the HEADER_SIZE constant ({HEADER_SIZE})"))),));
         }
 
-        trace!("Writing header to stream..");
         self.stream.write_all(&header_bytes)?;
         trace!("Writing header to stream.. Ok");
-        trace!("Writing message to stream..");
+
         self.stream.write_all(&message_bytes)?;
         trace!("Writing message to stream.. Ok");
 
-        trace!("Exiting send function");
         Ok(())
     }
     pub fn recv(&mut self) -> Result<R, SocketError> {
@@ -82,17 +81,14 @@ impl<R: DeserializeOwned + std::fmt::Debug, W: Serialize + std::fmt::Debug> Sock
 
         let mut header_buffer: [u8; HEADER_SIZE] = [0; HEADER_SIZE];
 
-        trace!("Reading header..");
         self.stream.read_exact(&mut header_buffer)?;
         trace!("Reading header.. Done, {} bytes", header_buffer.len());
 
-        trace!("Deserializing header..");
         let header: PacketHeader = bincode::deserialize(&header_buffer)?;
         trace!("Deserializing header.. Done: {header:?}");
 
         let mut message_buffer = vec![0; header.size];
 
-        trace!("Reading message ({} bytes)..", header.size);
         self.stream.read_exact(&mut message_buffer)?;
         trace!(
             "Reading message ({} bytes).. Done, {} bytes",
@@ -100,7 +96,6 @@ impl<R: DeserializeOwned + std::fmt::Debug, W: Serialize + std::fmt::Debug> Sock
             message_buffer.len()
         );
 
-        trace!("Deserializing message..");
         let message = bincode::deserialize(&message_buffer)?;
         trace!("Deserializing message.. Done, {message:?}");
 

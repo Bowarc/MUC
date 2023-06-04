@@ -7,7 +7,7 @@ const ACCOUNT_FILE_PATH: crate::file::ConsPath =
 #[derive(Debug)]
 pub struct AccountManager {
     accounts: Vec<Account>,
-    connected_accounts: Vec<uuid::Uuid>,
+    pub connected_accounts: Vec<uuid::Uuid>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -20,7 +20,7 @@ pub struct Account {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum AccountLog {
-    Connection(std::net::IpAddr),
+    Connection(std::net::SocketAddr),
     Disconnection,
 }
 
@@ -32,6 +32,7 @@ impl AccountManager {
         }
     }
 
+    /// Load the account list from filesystem and returns it, returning an empty AccountManager on error
     pub fn load() -> Self {
         // Could do Result<Self, Self> but meh
         if let Ok(account_list) =
@@ -48,7 +49,7 @@ impl AccountManager {
             Self::new_empty()
         }
     }
-
+    /// saves the current account list to filesystem
     pub fn save(&self) {
         let pretty = ron::ser::PrettyConfig::new()
             // .depth_limit(2)
@@ -60,17 +61,19 @@ impl AccountManager {
         crate::file::write_bytes(ACCOUNT_FILE_PATH.into(), s).unwrap();
     }
 
+    /// registers a new account to account list
     pub fn register(&mut self, new_account: Account) -> Result<(), ()> {
         self.accounts.push(new_account);
 
         Ok(())
     }
 
+    /// Check if the username and password are corresponding to an account, logging it as connection and returning its id if success, retuning an error if fails
     pub fn login(
         &mut self,
         username: impl Into<String>,
         password: impl Into<String>,
-        ip: std::net::IpAddr,
+        ip: std::net::SocketAddr,
     ) -> Result<uuid::Uuid, crate::error::AccountLoginError> {
         let username = username.into();
         let password = password.into();
@@ -92,11 +95,14 @@ impl AccountManager {
 
             self.connected_accounts.push(account.id);
 
+            debug!("Loging in ({}),", username);
+
             return Ok(account.id);
         }
 
         Err(crate::error::AccountLoginError::UnknownUsername)
     }
+    /// logs the id out of its account, retuning an error if it fails
     pub fn logout(&mut self, id: uuid::Uuid) -> Result<(), crate::error::AccountLogoutError> {
         if let Some(index) = self
             .connected_accounts
@@ -116,12 +122,25 @@ impl AccountManager {
 
             account.log(AccountLog::Disconnection);
 
+            debug!("Loging out ({})", account.username);
+
             self.connected_accounts.remove(index);
 
             Ok(())
         } else {
             Err(crate::error::AccountLogoutError::NotLoggedIn)
         }
+    }
+
+    pub fn exit_cleanup(&mut self) {
+        while !self.connected_accounts.is_empty() {
+            let id = *self.connected_accounts.get(0).unwrap();
+            if let Err(e) = self.logout(id) {
+                error!("Tried to disconnect {id} but ecnoutered error: {e}")
+            }
+        }
+
+        self.save()
     }
 }
 

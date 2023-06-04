@@ -30,7 +30,7 @@ pub enum AccountError {
     Registration(#[from] AccountRegistrationError),
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, PartialEq)]
 pub enum AccountLoginError {
     #[error("Invalid password")]
     InvalidPassword,
@@ -40,7 +40,7 @@ pub enum AccountLoginError {
     #[error("This account is already being used by another machine")]
     AlreadyLoggedIn,
 }
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, PartialEq)]
 pub enum AccountLogoutError {
     #[error("The user is not logged in")]
     NotLoggedIn,

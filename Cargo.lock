@@ -482,6 +482,7 @@ dependencies = [
  "log-panics",
  "serde",
  "thiserror",
+ "uuid",
 ]
 
 [[package]]

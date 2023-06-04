@@ -6,9 +6,27 @@ fn main() {
     >::new(stream);
 
     socket
-        .send(shared::networking::ClientMessage::Text(String::from(
-            "Hellow",
-        )))
+        .send(shared::networking::ClientMessage::LoginRequest {
+            username: "username".into(),
+            password: "pw".into(),
+        })
+        .unwrap();
+
+    let msg = socket.recv();
+
+    dbg!(&msg);
+
+    let msg = msg.unwrap();
+    let id = if let shared::networking::ServerMessage::LoginResponse(resp) = msg {
+        resp.unwrap()
+    } else {
+        panic!("Could not get account id out of message")
+    };
+
+    std::thread::sleep(std::time::Duration::from_secs(5));
+
+    socket
+        .send(shared::networking::ClientMessage::LogoutRequest { id })
         .unwrap();
 
     let msg = socket.recv();

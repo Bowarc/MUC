@@ -28,14 +28,22 @@ impl Server {
         }
     }
     fn update(&mut self) {
-        debug!("Update");
+        debug!(
+            "Connected accounts: {:?}",
+            self.account_manager.connected_accounts
+        );
+
+        for handle in self.clients.iter_mut() {
+            handle.update(&mut self.account_manager)
+        }
 
         match self.listener.accept() {
             Ok((stream, addr)) => {
                 debug!("New client {addr:?}");
                 stream.set_nodelay(true).unwrap(); // ?
 
-                // self.clients.push(client_handler::Client::new(stream));
+                self.clients
+                    .push(client_handler::ClientHandle::new(stream, addr));
             }
             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                 // wait until network socket is ready, typically implemented
@@ -53,6 +61,8 @@ impl Server {
             }
         }
     }
+
+    fn update_client_handles(&mut self) {}
 }
 
 const TARGET_TPS: f32 = 10.;
@@ -87,7 +97,7 @@ fn main() {
         loop_helper.loop_sleep();
     }
 
-    server.account_manager.save();
+    server.account_manager.exit_cleanup();
 
     debug!("Saving accounts and quitting");
 }

@@ -1,8 +1,17 @@
 [
     /*[0]*/ (
         id: "baa2b3e9-bbef-4cc6-b82b-a42654edf87d",
-        username: "Bowarc",
-        password: "Password1",
-        logs: [],
+        username: "username",
+        password: "pw",
+        logs: [
+            /*[0]*/ (
+                "2023-06-04T17:28:32.591993800Z",
+                Connection("127.0.0.1:57896"),
+            ),
+            /*[1]*/ (
+                "2023-06-04T17:28:45.692310200Z",
+                Disconnection,
+            ),
+        ],
     ),
 ]
