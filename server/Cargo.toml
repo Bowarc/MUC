@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+chrono = { version = "0.4.26", features = ["serde"] }
+ctrlc = "3.4.0"
 log = "0.4.18"
 ron = "0.8.0"
 rust-embed = "6.6.1"
@@ -13,5 +15,6 @@ serde = { version = "1.0.163", features = ["derive"] }
 
 shared = { path = "../shared" }
 spin_sleep = "1.1.1"
+thiserror = "1.0.40"
 
 uuid = { version = "1.3.3", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }
