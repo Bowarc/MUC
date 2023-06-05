@@ -1,5 +1,8 @@
+#[macro_use]
+extern crate log;
+
 fn main() {
-    shared::logger::init(None);
+    shared::logger::init(log::LevelFilter::Debug, None);
 
     let stream = std::net::TcpStream::connect(shared::networking::DEFAULT_ADDRESS).unwrap();
     let mut socket = shared::networking::Socket::<
@@ -14,11 +17,17 @@ fn main() {
         })
         .unwrap();
 
-    let msg = socket.recv();
+    let msg = loop {
+        match socket.recv() {
+            Ok(msg) => break msg,
+            Err(e) => {
+                // warn!("{e:?}");
+            }
+        }
+    };
 
     dbg!(&msg);
 
-    let msg = msg.unwrap();
     let id = if let shared::networking::ServerMessage::LoginResponse(resp) = msg {
         resp.unwrap()
     } else {
@@ -33,6 +42,10 @@ fn main() {
         })
         .unwrap();
 
-    let msg = socket.recv();
-    dbg!(msg);
+    loop {
+        if let Ok(msg) = socket.recv() {
+            dbg!(msg);
+            break;
+        }
+    }
 }

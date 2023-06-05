@@ -5,13 +5,13 @@ extern crate log;
 extern crate serde;
 
 mod account_manager;
-mod client_handler;
+mod client;
 mod error;
 mod file;
 mod threading;
 
 struct Server {
-    clients: Vec<client_handler::ClientHandle>,
+    clients: Vec<client::ClientHandle>,
     listener: std::net::TcpListener,
     account_manager: account_manager::AccountManager,
 }
@@ -28,10 +28,10 @@ impl Server {
         }
     }
     fn update(&mut self) {
-        debug!(
-            "Connected accounts: {:?}",
-            self.account_manager.connected_accounts
-        );
+        // debug!(
+        //     "Connected accounts: {:?}",
+        //     self.account_manager.connected_accounts
+        // );
 
         for handle in self.clients.iter_mut() {
             handle.update(&mut self.account_manager)
@@ -42,8 +42,7 @@ impl Server {
                 debug!("New client {addr:?}");
                 // stream.set_nodelay(true).unwrap(); // ?
 
-                self.clients
-                    .push(client_handler::ClientHandle::new(stream, addr));
+                self.clients.push(client::ClientHandle::new(stream, addr));
             }
             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                 // wait until network socket is ready, typically implemented
@@ -68,7 +67,7 @@ impl Server {
 const TARGET_TPS: f32 = 10.;
 
 fn main() {
-    shared::logger::init(None);
+    shared::logger::init(log::LevelFilter::Trace, None);
 
     // // Dummy first account
 

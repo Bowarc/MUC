@@ -1,4 +1,4 @@
-pub fn init(log_file_opt: Option<&str>) {
+pub fn init(global_level: log::LevelFilter, log_file_opt: Option<&str>) {
     let mut builder = fern::Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!(
@@ -13,7 +13,7 @@ pub fn init(log_file_opt: Option<&str>) {
                 message = message
             ))
         })
-        .level(log::LevelFilter::Error)
+        .level(global_level)
         .chain(std::io::stdout());
     if let Some(log_file) = log_file_opt {
         builder = builder.chain(fern::log_file(log_file).unwrap());

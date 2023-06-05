@@ -1,3 +1,8 @@
+mod files;
+mod handler;
+pub use files::*;
+pub use handler::*;
+
 struct Client {
     socket: shared::networking::Socket<
         shared::networking::ClientMessage,
@@ -15,11 +20,6 @@ pub enum Message {
     LogoutResponse(Result<(), crate::error::AccountLogoutError>),
 }
 
-pub struct ClientHandle {
-    channel: crate::threading::Channel<Message>,
-    ip: std::net::SocketAddr,
-}
-
 impl Client {
     fn new(stream: std::net::TcpStream, channel: crate::threading::Channel<Message>) -> Self {
         // stream.set_nonblocking(false);
@@ -35,21 +35,24 @@ impl Client {
 
     fn run(&mut self) {
         loop {
+            // debug!("Client loop");
             // think about handleing quit events too
             //handle_server_msg
             if let Ok(msg) = self.channel.try_recv() {
-                let response = match msg {
+                match msg {
                     Message::LoginResponse(result) => {
                         // send this to the client
 
                         if let Ok(id) = result {
                             self.account_state = Some(id)
                         }
-                        shared::networking::ServerMessage::LoginResponse(
-                            result
-                                .map(|id| id.hyphenated().to_string())
-                                .map_err(|e| format!("{e}")),
-                        )
+                        self.socket
+                            .send(shared::networking::ServerMessage::LoginResponse(
+                                result
+                                    .map(|id| id.hyphenated().to_string())
+                                    .map_err(|e| format!("{e}")),
+                            ))
+                            .unwrap();
 
                         // match result {
                         //     Ok(id) => {
@@ -67,9 +70,14 @@ impl Client {
                         if result.is_ok() {
                             self.account_state = None
                         }
-                        shared::networking::ServerMessage::LogoutResponse(
-                            result.map_err(|e| format!("{e}")),
-                        )
+
+                        self.socket
+                            .send(shared::networking::ServerMessage::LogoutResponse(
+                                result.map_err(|e| format!("{e}")),
+                            ))
+                            .unwrap();
+
+                        break;
 
                         // match result {
                         //     Ok(_) => {
@@ -86,7 +94,6 @@ impl Client {
 
                     Message::LoginRequest { .. } | Message::LogoutRequest { .. } => unreachable!(),
                 };
-                self.socket.send(response).unwrap()
             }
 
             //handle_client_messages
@@ -104,11 +111,11 @@ impl Client {
                     }
                 },
                 Err(e) => {
-                    if if let shared::networking::SocketError::Io(ref io_e) = e {
+                    if if let shared::networking::SocketError::StreamRead(ref io_e) = e {
                         io_e.kind() == std::io::ErrorKind::WouldBlock
                     } else {
-                        matches!(e, shared::networking::SocketError::NotEnoughData(..))
-                        // false
+                        // matches!(e, shared::networking::SocketError::WouldBlock)
+                        false
                     } {
                         // Not critical error
                         // warn!("Would block");
@@ -122,6 +129,8 @@ impl Client {
                 }
             }
         }
+        self.socket.shutdown();
+        debug!("Client has exited");
 
         if let Some(id) = self.account_state {
             self.channel.send(Message::LogoutRequest { id }).unwrap();
@@ -130,39 +139,4 @@ impl Client {
     fn handle_server_msg(&mut self) {}
 
     fn handle_client_messages(&mut self) {}
-}
-
-impl ClientHandle {
-    pub fn new(stream: std::net::TcpStream, ip: std::net::SocketAddr) -> Self {
-        let (channel1, channel2) = crate::threading::Channel::new_pair();
-
-        std::thread::spawn(move || {
-            let mut client = Client::new(stream, channel1);
-
-            client.run()
-        });
-
-        Self {
-            channel: channel2,
-            ip,
-        }
-    }
-
-    pub fn update(&mut self, account_mgr: &mut crate::account_manager::AccountManager) {
-        if let Ok(msg) = self.channel.try_recv() {
-            let response = match msg {
-                Message::LoginRequest { username, password } => {
-                    Message::LoginResponse(account_mgr.login(username, password, self.ip))
-                }
-                Message::LogoutRequest { id } => Message::LogoutResponse(account_mgr.logout(id)),
-                Message::LoginResponse { .. } | Message::LogoutResponse { .. } => {
-                    unreachable!()
-                }
-            };
-
-            if let Err(e) = self.channel.send(response) {
-                error!("{e}")
-            }
-        }
-    }
 }
