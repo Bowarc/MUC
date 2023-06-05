@@ -13,7 +13,7 @@ pub fn init(log_file_opt: Option<&str>) {
                 message = message
             ))
         })
-        .level(log::LevelFilter::Debug)
+        .level(log::LevelFilter::Error)
         .chain(std::io::stdout());
     if let Some(log_file) = log_file_opt {
         builder = builder.chain(fern::log_file(log_file).unwrap());

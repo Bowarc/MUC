@@ -22,6 +22,7 @@ pub struct ClientHandle {
 
 impl Client {
     fn new(stream: std::net::TcpStream, channel: crate::threading::Channel<Message>) -> Self {
+        // stream.set_nonblocking(false);
         Self {
             socket: shared::networking::Socket::<
                 shared::networking::ClientMessage,
@@ -45,7 +46,9 @@ impl Client {
                             self.account_state = Some(id)
                         }
                         shared::networking::ServerMessage::LoginResponse(
-                            result.map_err(|e| format!("{e}")),
+                            result
+                                .map(|id| id.hyphenated().to_string())
+                                .map_err(|e| format!("{e}")),
                         )
 
                         // match result {
@@ -104,12 +107,14 @@ impl Client {
                     if if let shared::networking::SocketError::Io(ref io_e) = e {
                         io_e.kind() == std::io::ErrorKind::WouldBlock
                     } else {
-                        false
+                        matches!(e, shared::networking::SocketError::NotEnoughData(..))
+                        // false
                     } {
-                        // continue
+                        // Not critical error
+                        // warn!("Would block");
                     } else {
                         error!(
-                            "Error while listening client {}, aborting",
+                            "Error while listening client {}, aborting: {e}",
                             self.socket.remote_addr()
                         );
                         break;

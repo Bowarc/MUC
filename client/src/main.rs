@@ -1,4 +1,6 @@
 fn main() {
+    shared::logger::init(None);
+
     let stream = std::net::TcpStream::connect(shared::networking::DEFAULT_ADDRESS).unwrap();
     let mut socket = shared::networking::Socket::<
         shared::networking::ServerMessage,
@@ -26,7 +28,9 @@ fn main() {
     std::thread::sleep(std::time::Duration::from_secs(5));
 
     socket
-        .send(shared::networking::ClientMessage::LogoutRequest { id })
+        .send(shared::networking::ClientMessage::LogoutRequest {
+            id: uuid::Uuid::parse_str(&id).unwrap(),
+        })
         .unwrap();
 
     let msg = socket.recv();

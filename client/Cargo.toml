@@ -12,4 +12,6 @@ edition = "2021"
 # rand = "0.8.5"
 # rsa = { version = "0.8.2", features = ["serde"] }
 shared = { path = "../shared" }
+uuid = { version = "1.3.3", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }
+
 

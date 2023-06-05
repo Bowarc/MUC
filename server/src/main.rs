@@ -40,7 +40,7 @@ impl Server {
         match self.listener.accept() {
             Ok((stream, addr)) => {
                 debug!("New client {addr:?}");
-                stream.set_nodelay(true).unwrap(); // ?
+                // stream.set_nodelay(true).unwrap(); // ?
 
                 self.clients
                     .push(client_handler::ClientHandle::new(stream, addr));
