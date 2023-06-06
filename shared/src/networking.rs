@@ -47,7 +47,7 @@ pub enum ClientMessage {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ServerMessage {
     Text(String),
-    LoginResponse(Result<String, String>),
+    LoginResponse(Result<uuid::Uuid, String>),
     LogoutResponse(Result<(), String>),
 }
 

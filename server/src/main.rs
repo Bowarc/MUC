@@ -4,6 +4,9 @@ extern crate log;
 #[macro_use]
 extern crate serde;
 
+#[macro_use]
+extern crate derivative;
+
 mod account_manager;
 mod client;
 mod error;
@@ -33,9 +36,18 @@ impl Server {
         //     self.account_manager.connected_accounts
         // );
 
-        for handle in self.clients.iter_mut() {
-            handle.update(&mut self.account_manager)
-        }
+        self.clients.retain_mut(|handle| {
+            debug!("updating ({})", handle.ip);
+            if let Err(e) = handle.update(&mut self.account_manager) {
+                error!(
+                    "An error occured while updating client handle ({}) {e}, closing the handle",
+                    handle.ip
+                );
+                false
+            } else {
+                true
+            }
+        });
 
         match self.listener.accept() {
             Ok((stream, addr)) => {
@@ -69,7 +81,7 @@ const TARGET_TPS: f32 = 10.;
 fn main() {
     shared::logger::init(log::LevelFilter::Trace, None);
 
-    // // Dummy first account
+    // Dummy first account
 
     // let acc = account_manager::Account::new("Bowarc", "Password1");
 
@@ -78,7 +90,7 @@ fn main() {
     // acc_mgr.register(acc);
     // acc_mgr.save()
 
-    // //
+    //
     let running = set_up_ctrlc();
 
     let mut server = Server::new();

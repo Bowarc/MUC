@@ -17,6 +17,8 @@ fn main() {
         })
         .unwrap();
 
+    debug!("Waiting for sever response");
+
     let msg = loop {
         match socket.recv() {
             Ok(msg) => break msg,
@@ -37,9 +39,7 @@ fn main() {
     std::thread::sleep(std::time::Duration::from_secs(5));
 
     socket
-        .send(shared::networking::ClientMessage::LogoutRequest {
-            id: uuid::Uuid::parse_str(&id).unwrap(),
-        })
+        .send(shared::networking::ClientMessage::LogoutRequest { id })
         .unwrap();
 
     loop {

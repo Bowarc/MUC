@@ -1,8 +1,7 @@
 // i think i will store accounts in a ron file for now, idc abt security for now, it's just for learning
 // ig i need a fix file structure if i want to have mutiple accounts and each accound has a folder when i write their files in ?
 
-const ACCOUNT_FILE_PATH: crate::file::ConsPath =
-    crate::file::ConsPath::new(crate::file::FileSystem::External, "accounts.ron");
+const ACCOUNT_FILE_PATH: crate::file::ConsPath = crate::file::ConsPath::new("accounts.ron");
 
 #[derive(Debug)]
 pub struct AccountManager {
@@ -10,11 +9,13 @@ pub struct AccountManager {
     pub connected_accounts: Vec<uuid::Uuid>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Derivative, Serialize, Deserialize)]
+#[derivative(Debug)]
 pub struct Account {
     id: uuid::Uuid,
     username: String,
     password: String,
+    #[derivative(Debug = "ignore")]
     logs: Vec<(chrono::DateTime<chrono::offset::Utc>, AccountLog)>,
 }
 

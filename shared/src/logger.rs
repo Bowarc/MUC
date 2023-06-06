@@ -1,16 +1,28 @@
+fn colorise(message: String, level: log::Level) -> colored::ColoredString {
+    use colored::Colorize as _;
+    match level {
+        log::Level::Trace => message.normal(),
+        log::Level::Debug => message.cyan(),
+        log::Level::Info => message.green(),
+        log::Level::Warn => message.yellow(),
+        log::Level::Error => message.red(),
+        // _ => message.normal(),
+    }
+}
+
 pub fn init(global_level: log::LevelFilter, log_file_opt: Option<&str>) {
     let mut builder = fern::Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!(
                 "╭[{time} {level} {file_path}:{line_nbr}]\n╰❯{message}",
                 time = chrono::Local::now().format("%H:%M:%S%.3f"),
-                level = record.level(),
+                level = colorise(record.level().to_string(), record.level()),
                 file_path = record.file().unwrap_or("Unknown file"),
                 line_nbr = record
                     .line()
                     .map(|l| l.to_string())
                     .unwrap_or("?".to_string()),
-                message = message
+                message = colorise(message.to_string(), record.level())
             ))
         })
         .level(global_level)
