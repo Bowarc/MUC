@@ -32,7 +32,7 @@ pub fn init(global_level: log::LevelFilter, log_file_opt: Option<&str>) {
     }
     builder = builder.level_for("eframe", log::LevelFilter::Off);
     builder = builder.level_for("egui_glow", log::LevelFilter::Off);
-    builder = builder.level_for("egui-winit-0.22.0", log::LevelFilter::Off);
+    builder = builder.level_for("egui_winit", log::LevelFilter::Off);
 
     builder.apply().unwrap();
 

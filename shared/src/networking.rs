@@ -43,12 +43,15 @@ pub enum ClientMessage {
     Text(String),
     LoginRequest { username: String, password: String },
     LogoutRequest { id: uuid::Uuid },
+
+    ChangeDirectory(String),
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ServerMessage {
     Text(String),
     LoginResponse(Result<uuid::Uuid, String>),
     LogoutResponse(Result<(), String>),
+    FileScanUpdate(crate::filesystem::FileScan),
 }
 
 impl<R: DeserializeOwned + std::fmt::Debug, W: Serialize + std::fmt::Debug> Socket<R, W> {

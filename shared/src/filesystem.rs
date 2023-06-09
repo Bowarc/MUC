@@ -1,23 +1,25 @@
-#[derive(Default, Debug)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Clone)]
 pub struct FileScan {
-    directories: Vec<Directory>,
-    files: Vec<File>,
+    pub directories: Vec<Directory>,
+    pub files: Vec<File>,
 }
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct File {
-    name: String,
+    pub name: String,
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Directory {
-    name: String,
+    pub name: String,
 }
 
 impl FileScan {
     pub fn new(dir: impl Into<std::path::PathBuf>) -> Option<Self> {
         let dir = dir.into();
         let mut s = FileScan::default();
-        // println!("Scanning {:?}", dir);
+        debug!("Scanning {:?}", dir);
         if !dir.exists() {
             return None;
         }

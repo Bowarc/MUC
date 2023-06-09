@@ -75,7 +75,7 @@ impl AccountManager {
         username: impl Into<String>,
         password: impl Into<String>,
         ip: std::net::SocketAddr,
-    ) -> Result<uuid::Uuid, crate::error::AccountLoginError> {
+    ) -> Result<uuid::Uuid, shared::error::AccountLoginError> {
         let username = username.into();
         let password = password.into();
 
@@ -85,11 +85,11 @@ impl AccountManager {
             }
 
             if account.password != password {
-                return Err(crate::error::AccountLoginError::InvalidPassword);
+                return Err(shared::error::AccountLoginError::InvalidPassword);
             }
 
             if self.connected_accounts.contains(&account.id) {
-                return Err(crate::error::AccountLoginError::AlreadyLoggedIn);
+                return Err(shared::error::AccountLoginError::AlreadyLoggedIn);
             }
 
             account.log(AccountLog::Connection(ip));
@@ -101,10 +101,10 @@ impl AccountManager {
             return Ok(account.id);
         }
 
-        Err(crate::error::AccountLoginError::UnknownUsername)
+        Err(shared::error::AccountLoginError::UnknownUsername)
     }
     /// logs the id out of its account, retuning an error if it fails
-    pub fn logout(&mut self, id: uuid::Uuid) -> Result<(), crate::error::AccountLogoutError> {
+    pub fn logout(&mut self, id: uuid::Uuid) -> Result<(), shared::error::AccountLogoutError> {
         if let Some(index) = self
             .connected_accounts
             .iter()
@@ -114,12 +114,12 @@ impl AccountManager {
                 .accounts
                 .iter()
                 .position(|account| account.id == id)
-                .ok_or(crate::error::AccountLogoutError::UnknownAccount)?;
+                .ok_or(shared::error::AccountLogoutError::UnknownAccount)?;
 
             let account = self
                 .accounts
                 .get_mut(account_index)
-                .ok_or(crate::error::AccountLogoutError::UnknownAccount)?;
+                .ok_or(shared::error::AccountLogoutError::UnknownAccount)?;
 
             account.log(AccountLog::Disconnection);
 
@@ -129,7 +129,7 @@ impl AccountManager {
 
             Ok(())
         } else {
-            Err(crate::error::AccountLogoutError::NotLoggedIn)
+            Err(shared::error::AccountLogoutError::NotLoggedIn)
         }
     }
 

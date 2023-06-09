@@ -2,7 +2,7 @@ const USER_FILES_ROOT: crate::file::ConsPath = crate::file::ConsPath::new("user_
 
 pub struct FileSystem {
     current_directory: UserPath,
-    current_dir_scan: shared::filesystem::FileScan,
+    pub current_dir_scan: shared::filesystem::FileScan,
     user_id: String,
 }
 
@@ -39,7 +39,7 @@ impl FileSystem {
     }
 
     /// returns a list of every element in current directory
-    pub fn scan(&self) -> shared::filesystem::FileScan {
+    fn scan(&self) -> shared::filesystem::FileScan {
         shared::filesystem::FileScan::new(self.current_directory.build()).unwrap()
     }
     /// changes directory
@@ -50,7 +50,7 @@ impl FileSystem {
         for action in actions {
             if action != ".." && self.current_dir_scan.has_dir(action) {
                 self.current_directory
-                    .push(UserPathBit::File(action.to_string()));
+                    .push(UserPathBit::Directory(action.to_string()));
                 self.current_dir_scan = self.scan()
             } else {
                 if !self.is_root() {
@@ -139,6 +139,7 @@ impl UserPath {
 
         o.push_str(&format!("{}/", self.id));
         for bit in &self.bits {
+            debug!("{o}");
             match bit {
                 UserPathBit::Directory(name) => {
                     o.push_str(name);

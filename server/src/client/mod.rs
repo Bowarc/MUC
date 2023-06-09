@@ -25,9 +25,9 @@ struct AccountState {
 #[derive(Debug, PartialEq)]
 pub enum Message {
     LoginRequest { username: String, password: String },
-    LoginResponse(Result<uuid::Uuid, crate::error::AccountLoginError>),
+    LoginResponse(Result<uuid::Uuid, shared::error::AccountLoginError>),
     LogoutRequest { id: uuid::Uuid },
-    LogoutResponse(Result<(), crate::error::AccountLogoutError>),
+    LogoutResponse(Result<(), shared::error::AccountLogoutError>),
 }
 
 impl Client {
@@ -56,12 +56,14 @@ impl Client {
             .report_interval_s(0.5)
             .build_with_target_rate(TARGET_TPS);
 
-        while self.running.load(std::sync::atomic::Ordering::Relaxed) {
+        let mut running = true;
+
+        while running && self.running.load(std::sync::atomic::Ordering::Relaxed) {
             loop_helper.loop_start();
 
-            self.handle_server_msg();
+            self.handle_server_msg(&mut running);
 
-            self.handle_client_messages();
+            self.handle_client_messages(&mut running);
 
             loop_helper.loop_sleep();
         }
@@ -73,24 +75,45 @@ impl Client {
                 .send(Message::LogoutRequest { id: acc_state.id })
                 .unwrap();
         }
+
+        self.running
+            .store(false, std::sync::atomic::Ordering::Relaxed);
         debug!("Client thread for ({}) has exited", self.ip);
     }
-    fn handle_server_msg(&mut self) {
+    fn handle_server_msg(&mut self, running: &mut bool) {
         if let Ok(msg) = self.channel.try_recv() {
             match msg {
                 Message::LoginResponse(result) => {
                     // send this to the client
 
+                    debug!("log resp: {:?}", result);
+
                     if let Ok(id) = result {
-                        self.account_state = Some(AccountState::new(id))
+                        let acc_state = AccountState::new(id);
+
+                        self.socket
+                            .send(shared::networking::ServerMessage::LoginResponse(
+                                result
+                                    // .map(|id| id.hyphenated().to_string())
+                                    .map_err(|e| format!("{e}")),
+                            ))
+                            .unwrap();
+                        self.socket
+                            .send(shared::networking::ServerMessage::FileScanUpdate(
+                                acc_state.fs.current_dir_scan.clone(),
+                            ))
+                            .unwrap();
+
+                        self.account_state = Some(acc_state);
+                    } else {
+                        self.socket
+                            .send(shared::networking::ServerMessage::LoginResponse(
+                                result
+                                    // .map(|id| id.hyphenated().to_string())
+                                    .map_err(|e| format!("{e}")),
+                            ))
+                            .unwrap();
                     }
-                    self.socket
-                        .send(shared::networking::ServerMessage::LoginResponse(
-                            result
-                                // .map(|id| id.hyphenated().to_string())
-                                .map_err(|e| format!("{e}")),
-                        ))
-                        .unwrap();
                 }
                 Message::LogoutResponse(result) => {
                     if result.is_ok() {
@@ -103,8 +126,7 @@ impl Client {
                         ))
                         .unwrap();
 
-                    self.running
-                        .store(false, std::sync::atomic::Ordering::Relaxed);
+                    *running = false;
 
                     // match result {
                     //     Ok(_) => {
@@ -124,7 +146,7 @@ impl Client {
         }
     }
 
-    fn handle_client_messages(&mut self) {
+    fn handle_client_messages(&mut self, running: &mut bool) {
         //handle_client_messages
         match self.socket.recv() {
             Ok(msg) => match msg {
@@ -138,13 +160,22 @@ impl Client {
                 shared::networking::ClientMessage::LogoutRequest { id } => {
                     self.channel.send(Message::LogoutRequest { id }).unwrap();
                 }
+                shared::networking::ClientMessage::ChangeDirectory(new_dir) => {
+                    if let Some(acc_state) = &mut self.account_state {
+                        acc_state.fs.cd(new_dir);
+                        self.socket
+                            .send(shared::networking::ServerMessage::FileScanUpdate(
+                                acc_state.fs.current_dir_scan.clone(),
+                            ))
+                            .unwrap()
+                    }
+                }
             },
             Err(e) => {
                 if if let shared::networking::SocketError::StreamRead(ref io_e) = e {
                     if io_e.kind() == std::io::ErrorKind::ConnectionReset {
                         warn!("Client {ip} disconnected", ip = self.ip);
-                        self.running
-                            .store(false, std::sync::atomic::Ordering::Relaxed);
+                        *running = false;
                         true
                     } else {
                         io_e.kind() == std::io::ErrorKind::WouldBlock
@@ -160,8 +191,7 @@ impl Client {
                         "Error while listening client {}, aborting: {e}",
                         self.socket.remote_addr()
                     );
-                    self.running
-                        .store(false, std::sync::atomic::Ordering::Relaxed);
+                    *running = false;
                 }
             }
         }

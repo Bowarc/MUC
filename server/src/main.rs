@@ -9,7 +9,6 @@ extern crate derivative;
 
 mod account_manager;
 mod client;
-mod error;
 mod file;
 
 struct Server {
@@ -36,7 +35,7 @@ impl Server {
         // );
 
         self.clients.retain_mut(|handle| {
-            debug!("updating ({})", handle.ip);
+            // trace!("updating ({})", handle.ip);
             if let Err(e) = handle.update(&mut self.account_manager) {
                 error!(
                     "An error occured while updating client handle ({}) {e}, closing the handle",

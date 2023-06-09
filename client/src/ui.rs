@@ -1,5 +1,10 @@
+use std::fs::DirEntry;
+
 pub struct Ui {
     server_handle: crate::server::handler::ServerHandle,
+
+    username_text: String,
+    password_text: String,
 }
 
 pub fn run() {
@@ -34,15 +39,21 @@ pub fn run() {
             ]
             .into();
             cc.egui_ctx.set_style(style);
-            Box::<Ui>::new(Ui {
-                server_handle: crate::server::handler::ServerHandle::new(),
-            })
+            Box::<Ui>::new(Ui::new())
         }),
     )
     .unwrap();
 }
 
 impl Ui {
+    fn new() -> Self {
+        Self {
+            server_handle: crate::server::handler::ServerHandle::new(),
+            username_text: String::new(),
+            password_text: String::new(),
+        }
+    }
+
     fn render_title_bar(
         &mut self,
         ui: &mut eframe::egui::Ui,
@@ -146,6 +157,75 @@ impl Ui {
             );
         });
     }
+
+    fn render_waiting_screen(&mut self, ui: &mut eframe::egui::Ui) {
+        ui.label("Waiting for the server to accept comunication");
+    }
+
+    fn render_account(&mut self, ctx: &eframe::egui::Context, ui: &mut eframe::egui::Ui) {
+        let mut move_to_dir_opt = None;
+        if let Some(scan) = &self.server_handle.account_state.as_ref().unwrap().fs {
+            // debug!("Rendering {scan:?}");
+
+            eframe::egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.vertical(|ui| {
+                    if ui.button("..".to_string()).clicked() {
+                        move_to_dir_opt = Some(String::from(".."))
+                    }
+                });
+
+                for directory in &scan.directories {
+                    ui.vertical_centered(|ui| {
+                        if ui
+                            .button(format!("Directory: {}", directory.name))
+                            .clicked()
+                        {
+                            debug!("Clicked {}", directory.name);
+
+                            move_to_dir_opt = Some(directory.name.clone())
+                        }
+                    });
+                }
+
+                for file in &scan.files {
+                    ui.vertical_centered(|ui| {
+                        if ui.button(format!("File: {}", file.name)).clicked() {
+                            debug!("Clicked {}", file.name)
+                        }
+                    });
+                }
+            });
+        } else {
+            debug!("Did not received the file scan yet")
+        }
+
+        if let Some(move_to_dir) = move_to_dir_opt {
+            self.server_handle.cd(move_to_dir);
+        }
+    }
+
+    fn render_login(&mut self, _ctx: &eframe::egui::Context, ui: &mut eframe::egui::Ui) {
+        ui.vertical_centered(|ui| {
+            ui.horizontal(|ui| {
+                ui.label("Username");
+                ui.text_edit_singleline(&mut self.username_text)
+            });
+
+            ui.horizontal(|ui| {
+                ui.label("Password");
+                ui.text_edit_singleline(&mut self.password_text)
+            });
+
+            if ui.button("Login").clicked() {
+                debug!(
+                    "Login with user: {}, pw: {}",
+                    self.username_text, self.password_text
+                );
+                self.server_handle
+                    .login(&self.username_text, &self.password_text);
+            }
+        });
+    }
 }
 
 impl eframe::App for Ui {
@@ -173,14 +253,11 @@ impl eframe::App for Ui {
                 };
                 self.render_title_bar(ui, frame, title_bar_rect, "Installer");
 
-                // // rest of the window
-                // let content_rect = {
-                //     let mut rect = app_rect;
-                //     rect.min.y = title_bar_rect.max.y;
-                //     rect
-                // }
-                // .shrink(4.0);
-                // let mut content_ui = ui.child_ui(content_rect, *ui.layout());
+                if self.server_handle.account_state.is_some() {
+                    self.render_account(ctx, ui);
+                } else {
+                    self.render_login(ctx, ui)
+                }
             });
         eframe::egui::TopBottomPanel::bottom("Bottom panel")
             .frame(
