@@ -104,7 +104,7 @@ impl UserPath {
             let buildedpb = std::path::PathBuf::from(builded.clone());
 
             if !buildedpb.exists() {
-                println!("{buildedpb:?} doesn't exist");
+                error!("{buildedpb:?} doesn't exist");
                 break;
             } else if buildedpb.is_file() {
                 // no need to go further, a file can't be a parent

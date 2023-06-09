@@ -19,7 +19,7 @@ impl FileScan {
     pub fn new(dir: impl Into<std::path::PathBuf>) -> Option<Self> {
         let dir = dir.into();
         let mut s = FileScan::default();
-        debug!("Scanning {:?}", dir);
+        // debug!("Scanning {:?}", dir);
         if !dir.exists() {
             return None;
         }

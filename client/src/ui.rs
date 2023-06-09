@@ -1,10 +1,11 @@
-use std::fs::DirEntry;
-
 pub struct Ui {
     server_handle: crate::server::handler::ServerHandle,
 
     username_text: String,
     password_text: String,
+
+    selected_file: Option<String>,
+    move_to_dir_opt: Option<String>,
 }
 
 pub fn run() {
@@ -51,6 +52,8 @@ impl Ui {
             server_handle: crate::server::handler::ServerHandle::new(),
             username_text: String::new(),
             password_text: String::new(),
+            selected_file: None,
+            move_to_dir_opt: None,
         }
     }
 
@@ -163,44 +166,123 @@ impl Ui {
     }
 
     fn render_account(&mut self, ctx: &eframe::egui::Context, ui: &mut eframe::egui::Ui) {
-        let mut move_to_dir_opt = None;
+        let mut render_item = |ui: &mut eframe::egui::Ui, name: String, is_dir: bool| {
+            ui.with_layout(ui.layout().with_cross_justify(true), |ui| {
+                let label = match is_dir {
+                    true => "🗀 ",
+                    false => "🗋 ",
+                };
+
+                let label = format!("{label} {name}");
+                let is_selected = Some(name.clone()) == self.selected_file;
+                let selectable_label = ui.selectable_label(is_selected, label);
+                if selectable_label.clicked() {
+                    // && !is_dir
+                    self.selected_file = Some(name.clone());
+                }
+
+                if selectable_label.double_clicked() && is_dir {
+                    self.move_to_dir_opt = Some(name.clone())
+                }
+            });
+        };
+
         if let Some(scan) = &self.server_handle.account_state.as_ref().unwrap().fs {
             // debug!("Rendering {scan:?}");
 
             eframe::egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.vertical(|ui| {
-                    if ui.button("..".to_string()).clicked() {
-                        move_to_dir_opt = Some(String::from(".."))
-                    }
-                });
+                ui.vertical(|ui| render_item(ui, "..".to_string(), true));
 
                 for directory in &scan.directories {
-                    ui.vertical_centered(|ui| {
-                        if ui
-                            .button(format!("Directory: {}", directory.name))
-                            .clicked()
-                        {
-                            debug!("Clicked {}", directory.name);
-
-                            move_to_dir_opt = Some(directory.name.clone())
-                        }
-                    });
+                    render_item(ui, directory.name.clone(), true)
                 }
 
                 for file in &scan.files {
-                    ui.vertical_centered(|ui| {
-                        if ui.button(format!("File: {}", file.name)).clicked() {
-                            debug!("Clicked {}", file.name)
-                        }
-                    });
+                    render_item(ui, file.name.clone(), false)
                 }
             });
         } else {
             debug!("Did not received the file scan yet")
         }
+    }
 
-        if let Some(move_to_dir) = move_to_dir_opt {
-            self.server_handle.cd(move_to_dir);
+    fn render_account_bottom_panel(&mut self, ctx: &eframe::egui::Context) {
+        if let Some(scan) = &self.server_handle.account_state.as_ref().unwrap().fs {
+            // Bottom file field.
+            eframe::egui::TopBottomPanel::bottom("egui_file_bottom")
+                .frame(
+                    eframe::egui::Frame::none()
+                        // .fill(eframe::egui::Color32::from_rgb(27, 27, 27))
+                        .rounding(10.0)
+                        .stroke(eframe::egui::Stroke::NONE)
+                        .outer_margin(0.5)
+                        .inner_margin(10.),
+                )
+                .show(ctx, |ui| {
+                    ui.add_space(ui.spacing().item_spacing.y * 2.0);
+                    ui.horizontal(|ui| {
+                        ui.label("File:");
+                        ui.with_layout(
+                            eframe::egui::Layout::right_to_left(eframe::egui::Align::Center),
+                            |ui| {
+                                if ui.button("New Folder").clicked() {
+                                    // command = Some(Command::CreateDirectory);
+                                }
+
+                                if ui.button("Rename").clicked() {
+                                    // if let Some(from) = self.selected_file.clone() {
+                                    //     let to = from.with_file_name(&self.filename_edit);
+                                    //     command = Some(Command::Rename(from, to));
+                                    // }
+                                }
+
+                                let backup = &mut String::new();
+
+                                let f = if let Some(f) = &mut self.selected_file {
+                                    f
+                                } else {
+                                    backup
+                                };
+
+                                let result = ui.add_sized(
+                                    ui.available_size(),
+                                    eframe::egui::TextEdit::singleline(f),
+                                );
+
+                                if result.lost_focus()
+                                    && result
+                                        .ctx
+                                        .input(|state| state.key_pressed(eframe::egui::Key::Enter))
+                                {
+                                    debug!("rename item")
+                                }
+                            },
+                        );
+                    });
+
+                    ui.add_space(ui.spacing().item_spacing.y);
+
+                    // Confirm, Cancel buttons.
+                    ui.horizontal(|ui| {
+                        if let Some(selected) = &self.selected_file {
+                            if (scan.has_dir(selected) || selected == "..")
+                                && ui.button("Open").clicked()
+                            {
+                                self.move_to_dir_opt = Some(selected.to_string())
+                                // command = Some(Command::OpenSelected);
+                            }
+                        }
+
+                        if ui.button("Cancel").clicked() {
+                            self.selected_file = None
+                        }
+
+                        // #[cfg(unix)]
+                        // ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+                        //     ui.checkbox(&mut self.show_hidden, "Show Hidden");
+                        // });
+                    });
+                });
         }
     }
 
@@ -233,6 +315,10 @@ impl eframe::App for Ui {
         self.server_handle.update();
         ctx.request_repaint();
 
+        // if self.server_handle.account_state.is_some() {
+        //     self.render_account_bottom_panel(ctx)
+        // }
+
         eframe::egui::CentralPanel::default()
             .frame(
                 eframe::egui::Frame::none()
@@ -251,23 +337,31 @@ impl eframe::App for Ui {
                     rect.max.y = rect.min.y + 32.0;
                     rect
                 };
-                self.render_title_bar(ui, frame, title_bar_rect, "Installer");
+                self.render_title_bar(ui, frame, title_bar_rect, "Muc Client");
 
                 if self.server_handle.account_state.is_some() {
-                    self.render_account(ctx, ui);
+                    ui.allocate_ui_at_rect(
+                        {
+                            let mut rect = ui.max_rect();
+
+                            rect.min.y = title_bar_rect.max.y;
+                            rect.max.y -= 90.;
+                            rect
+                        },
+                        |ui| {
+                            self.render_account(ctx, ui);
+                        },
+                    );
+                    self.render_account_bottom_panel(ctx)
                 } else {
                     self.render_login(ctx, ui)
                 }
             });
-        eframe::egui::TopBottomPanel::bottom("Bottom panel")
-            .frame(
-                eframe::egui::Frame::none()
-                    .fill(eframe::egui::Color32::TRANSPARENT)
-                    .rounding(10.0)
-                    .stroke(eframe::egui::Stroke::NONE)
-                    .outer_margin(0.5)
-                    .inner_margin(10.),
-            )
-            .show(ctx, |ui| ui.horizontal(|ui| ui.label("bottom pannel")));
+
+        if let Some(move_to_dir) = &self.move_to_dir_opt {
+            self.server_handle.cd(move_to_dir.to_string());
+            self.move_to_dir_opt = None;
+            self.selected_file = None
+        }
     }
 }
