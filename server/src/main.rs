@@ -11,7 +11,6 @@ mod account_manager;
 mod client;
 mod error;
 mod file;
-mod threading;
 
 struct Server {
     clients: Vec<client::ClientHandle>,

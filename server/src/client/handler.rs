@@ -1,12 +1,12 @@
 pub struct ClientHandle {
-    channel: crate::threading::Channel<crate::client::Message>,
+    channel: shared::threading::Channel<crate::client::Message>,
     pub ip: std::net::SocketAddr,
     running: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl ClientHandle {
     pub fn new(stream: std::net::TcpStream, ip: std::net::SocketAddr) -> Self {
-        let (channel1, channel2) = crate::threading::Channel::new_pair();
+        let (channel1, channel2) = shared::threading::Channel::new_pair();
 
         let running = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
 
@@ -27,7 +27,7 @@ impl ClientHandle {
     pub fn update(
         &mut self,
         account_mgr: &mut crate::account_manager::AccountManager,
-    ) -> Result<(), crate::error::ChannelError<crate::client::Message>> {
+    ) -> Result<(), shared::error::ChannelError<crate::client::Message>> {
         if let Ok(msg) = self.channel.try_recv() {
             let response = match msg {
                 crate::client::Message::LoginRequest { username, password } => {
@@ -48,7 +48,7 @@ impl ClientHandle {
         }
 
         if !self.running.load(std::sync::atomic::Ordering::Relaxed) {
-            return Err(crate::error::ChannelError::Other(
+            return Err(shared::error::ChannelError::Other(
                 "Target thread has exited",
             ));
         }

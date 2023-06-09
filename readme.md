@@ -4,12 +4,12 @@ Simple server accesible with clients (non web)
 
 The goal of this server is to be able to securely store files on a remote machine with a multi account system
 
-# THIS IS FOR LEARNING PURPOSES AND DOES NOT USE ANY SECURITY SYSTEM, DO NOT USE
+# THIS IS FOR LEARNING PURPOSES AND DOES NOT USE ANY SECURITY SYSTEM, USE AT YOUR OWN RISK
 
 ## Features 
-- [ ] Accounts
+- [x] Accounts
 - [ ] GUI
-- [ ] File system on server's machine
+- [x] File system on server's machine
 
 I'll make a simple one at first, WITHOUT ANY SECURITY, we'll see later
 

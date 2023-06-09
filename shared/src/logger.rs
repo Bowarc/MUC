@@ -30,6 +30,10 @@ pub fn init(global_level: log::LevelFilter, log_file_opt: Option<&str>) {
     if let Some(log_file) = log_file_opt {
         builder = builder.chain(fern::log_file(log_file).unwrap());
     }
+    builder = builder.level_for("eframe", log::LevelFilter::Off);
+    builder = builder.level_for("egui_glow", log::LevelFilter::Off);
+    builder = builder.level_for("egui-winit-0.22.0", log::LevelFilter::Off);
+
     builder.apply().unwrap();
 
     log_panics::Config::new()

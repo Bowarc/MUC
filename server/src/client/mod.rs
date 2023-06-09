@@ -10,7 +10,7 @@ struct Client {
         shared::networking::ClientMessage,
         shared::networking::ServerMessage,
     >,
-    channel: crate::threading::Channel<Message>,
+    channel: shared::threading::Channel<Message>,
     account_state: Option<AccountState>,
     ip: std::net::SocketAddr,
     running: std::sync::Arc<std::sync::atomic::AtomicBool>,
@@ -33,7 +33,7 @@ pub enum Message {
 impl Client {
     fn new(
         stream: std::net::TcpStream,
-        channel: crate::threading::Channel<Message>,
+        channel: shared::threading::Channel<Message>,
         ip: std::net::SocketAddr,
         running: std::sync::Arc<std::sync::atomic::AtomicBool>,
     ) -> Self {
