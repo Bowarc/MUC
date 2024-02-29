@@ -13,3 +13,4 @@ The goal of this server is to be able to securely store files on a remote machin
 
 I'll make a simple one at first, WITHOUT ANY SECURITY, we'll see later
 
+# github.com/hugolz/storage_server
