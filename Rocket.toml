@@ -1,0 +1,22 @@
+# https://rocket.rs/v0.5-rc/guide/configuration/
+
+## defaults for ALL profiles
+[default]
+ident = false
+address = "127.0.0.1"         # Local addr
+port = 0xa457
+workers = 2
+keep_alive = 5
+log_level = "normal"
+cli_colors = false
+ip_header = "X-Forwarded-For"
+
+# Streaming read size limits.
+[default.limits]
+bytes = "0 B"
+data-form = "0 B"
+file = "0 B"
+form = "0 B"
+msgpack = "0 B"
+string = "0 B"
+json = "0 B"

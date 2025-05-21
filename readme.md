@@ -1,4 +1,6 @@
-Multi User Container
+Multi User Container v2
+
+A simple file sharing platform
 
 Simple server accesible with clients (non web)
 
